@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>جدول مهامي</title>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="مهامي">
+<meta name="theme-color" content="#0d1117">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<script>
+if('serviceWorker' in navigator){
+  const C='mahami-v1';
+  const sw=`
+self.addEventListener('install',e=>{e.waitUntil(caches.open('${C}').then(c=>c.addAll(['./'])).then(()=>self.skipWaiting()))});
+self.addEventListener('activate',e=>e.waitUntil(clients.claim()));
+self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const cl=res.clone();caches.open('${C}').then(c=>c.put(e.request,cl));return res}).catch(()=>caches.match('./')))));
+  `;
+  const blob=new Blob([sw],{type:'application/javascript'});
+  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
+}
+const manifest={name:'جدول مهامي',short_name:'مهامي',description:'جدول مهام سادن ولانا الأسبوعي',start_url:'.',display:'standalone',background_color:'#0d1117',theme_color:'#0d1117',orientation:'portrait',icons:[{src:"data:image/svg+xml,"+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="100" fill="#0d1117"/><text y="360" x="80" font-size="320">📋</text></svg>`),sizes:'512x512',type:'image/svg+xml',purpose:'any maskable'}]};
+const ml=document.createElement('link');ml.rel='manifest';ml.href=URL.createObjectURL(new Blob([JSON.stringify(manifest)],{type:'application/json'}));document.head.appendChild(ml);
+</script>
+<style>
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#1c2128;--bg4:#21262d;
+  --brd:rgba(255,255,255,.08);--brd2:rgba(255,255,255,.12);
+  --txt:#e6edf3;--mut:#7d8590;--mut2:#484f58;
+  --gold:#d4a843;--gold2:#f0c060;--gold-bg:rgba(212,168,67,.1);
+  --green:#3fb950;--green-bg:rgba(63,185,80,.1);
+  --red:#f85149;--red-bg:rgba(248,81,73,.1);
+  --blue:#58a6ff;--blue-bg:rgba(88,166,255,.1);
+  --purple:#bc8cff;--purple-bg:rgba(188,140,255,.1);
+  --orange:#f0883e;--orange-bg:rgba(240,136,62,.1);
+  --teal:#39d353;
+  --r:14px;--rs:10px;--rx:8px;
+  --shd:0 8px 32px rgba(0,0,0,.4);
+  --shd2:0 2px 8px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--txt);direction:rtl;min-height:100vh;overflow-x:hidden}
+
+/* HEADER */
+.hdr{background:var(--bg2);border-bottom:1px solid var(--brd);padding:12px 16px 10px;position:sticky;top:0;z-index:100;box-shadow:var(--shd2)}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.hdr-logo{font-size:1.15rem;font-weight:900;color:var(--gold);display:flex;align-items:center;gap:7px}
+.hdr-hint{font-size:.62rem;color:var(--mut);text-align:center}
+
+/* USER TABS */
+.user-tabs{display:flex;gap:8px;background:var(--bg3);border-radius:var(--r);padding:4px}
+.utab{flex:1;padding:7px 0;border:none;border-radius:var(--rs);background:transparent;color:var(--mut);font-family:'Cairo',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .2s}
+.utab.active{background:var(--gold);color:#0d1117;box-shadow:0 2px 8px rgba(212,168,67,.3)}
+
+/* WEEK BAR */
+.week-bar{background:var(--bg3);border-bottom:1px solid var(--brd);padding:8px 16px;display:flex;align-items:center;gap:10px}
+.week-lbl{font-size:.72rem;color:var(--gold);font-weight:700;white-space:nowrap}
+.week-inp{flex:1;background:var(--bg4);border:1px solid var(--brd2);border-radius:var(--rx);color:var(--txt);font-family:'Cairo',sans-serif;font-size:.75rem;padding:6px 10px;text-align:center;outline:none}
+.week-inp::placeholder{color:var(--mut2)}
+.week-inp:focus{border-color:var(--gold)}
+
+/* SUMMARY */
+.summary{background:var(--bg2);border-bottom:1px solid var(--brd);padding:10px 16px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.sum-item{background:var(--bg3);border-radius:var(--rs);padding:8px 6px;text-align:center;border:1px solid var(--brd)}
+.sum-icon{font-size:1.1rem}
+.sum-val{font-size:1rem;font-weight:900;margin-top:1px}
+.sum-lbl{font-size:.55rem;color:var(--mut);margin-top:1px}
+.sum-coins{grid-column:span 4;background:var(--gold-bg);border:1px solid rgba(212,168,67,.25);border-radius:var(--rs);padding:10px;text-align:center}
+.sum-coins-val{font-size:1.3rem;font-weight:900;color:var(--gold)}
+.sum-coins-lbl{font-size:.65rem;color:var(--mut);margin-top:2px}
+
+/* LEGEND */
+.legend{background:var(--bg3);border-bottom:1px solid var(--brd);padding:8px 12px;display:flex;flex-wrap:wrap;gap:7px;justify-content:center}
+.leg{display:flex;align-items:center;gap:4px;font-size:.62rem;color:var(--mut)}
+.leg-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;min-width:460px}
+
+thead th{background:var(--bg2);color:var(--txt);font-size:.68rem;font-weight:700;padding:8px 3px;border:1px solid var(--brd);white-space:nowrap;text-align:center}
+thead th.th-lbl{text-align:right;padding-right:10px;width:120px;min-width:120px;background:var(--bg3)}
+thead th.th-sat{background:rgba(63,185,80,.12);color:var(--green)}
+thead th.th-fri{background:rgba(212,168,67,.12);color:var(--gold)}
+
+/* SECTION HEADERS */
+.sec-morning td{background:linear-gradient(90deg,rgba(240,136,62,.25),rgba(240,136,62,.15));color:var(--orange);font-weight:900;font-size:.72rem;padding:6px 12px;border:1px solid rgba(240,136,62,.2)}
+.sec-midday td{background:linear-gradient(90deg,rgba(88,166,255,.25),rgba(88,166,255,.15));color:var(--blue);font-weight:900;font-size:.72rem;padding:6px 12px;border:1px solid rgba(88,166,255,.2)}
+.sec-evening td{background:linear-gradient(90deg,rgba(188,140,255,.25),rgba(188,140,255,.15));color:var(--purple);font-weight:900;font-size:.72rem;padding:6px 12px;border:1px solid rgba(188,140,255,.2)}
+
+/* TASK ROWS */
+.task-row td{border:1px solid var(--brd);padding:0;height:40px}
+.task-row .lbl{font-size:.65rem;font-weight:600;padding:0 8px;text-align:right;vertical-align:middle;border-right:2px solid var(--brd2);width:120px;min-width:120px}
+
+/* TASK TYPE COLORS */
+.t-prayer  .lbl,.t-prayer  {background:rgba(212,168,67,.06);color:#c9a040}
+.t-wudu    .lbl,.t-wudu    {background:rgba(88,166,255,.06);color:#6aacff}
+.t-azkar   .lbl,.t-azkar   {background:rgba(63,185,80,.06);color:#5acc70}
+.t-quran   .lbl,.t-quran   {background:rgba(188,140,255,.06);color:#cc9eff}
+.t-meal    .lbl,.t-meal    {background:rgba(240,136,62,.06);color:#f09a50}
+.t-study   .lbl,.t-study   {background:rgba(88,166,255,.08);color:#70b8ff}
+.t-personal.lbl,.t-personal{background:rgba(248,81,73,.05);color:#f88080}
+.t-normal  .lbl,.t-normal  {background:var(--bg3);color:var(--txt)}
+
+/* CELL */
+.cell{width:100%;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;user-select:none;transition:transform .1s,background .15s}
+.cell:active{transform:scale(.75)}
+.cell.empty::after{content:"·";color:var(--mut2);font-size:22px}
+.cell.check{background:rgba(63,185,80,.2)!important}
+.cell.cross{background:rgba(248,81,73,.18)!important}
+.cell.star {background:rgba(212,168,67,.22)!important}
+
+/* TOTALS */
+.totals-row td{background:var(--bg3);font-weight:700;font-size:.68rem;text-align:center;padding:6px 2px;border:1px solid var(--brd)}
+.totals-row .lbl{text-align:right;background:var(--bg4);font-size:.65rem;color:var(--gold)}
+.pos{color:var(--green)}
+.neg{color:var(--red)}
+
+/* RESET BTN */
+.reset-wrap{padding:14px 16px}
+.reset-btn{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,81,73,.2);border-radius:var(--r);padding:13px;width:100%;cursor:pointer;font-family:'Cairo',sans-serif;font-size:.82rem;font-weight:700;transition:all .2s}
+.reset-btn:active{background:rgba(248,81,73,.3)}
+
+/* INSTALL BANNER */
+.ib{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(120px);z-index:400;background:var(--gold);color:#0d1117;border-radius:16px;padding:11px 15px;display:flex;align-items:center;gap:11px;box-shadow:var(--shd);transition:transform .5s cubic-bezier(.34,1.56,.64,1);min-width:250px;max-width:310px;pointer-events:none}
+.ib.show{transform:translateX(-50%) translateY(0);pointer-events:auto}
+.ib-txt{flex:1}
+.ib-tt{font-weight:900;font-size:.85rem}
+.ib-sb{font-size:.65rem;opacity:.75}
+.ib-btn{background:#0d1117;color:var(--gold);border:none;border-radius:10px;padding:7px 14px;font-family:'Cairo',sans-serif;font-size:.75rem;font-weight:700;cursor:pointer;white-space:nowrap}
+.ib-x{background:transparent;border:none;color:#0d1117;font-size:1rem;cursor:pointer;padding:0 4px;opacity:.7}
+
+.bottom{height:env(safe-area-inset-bottom,20px)}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-top">
+    <div class="hdr-logo">📋 <span id="pageTitle">جدول مهام سادن</span></div>
+  </div>
+  <div class="user-tabs">
+    <button class="utab active" onclick="switchUser('سادن')">🌟 سادن</button>
+    <button class="utab" onclick="switchUser('لانا')">🌸 لانا</button>
+  </div>
+  <div class="hdr-hint" style="margin-top:7px">ضغطة = تغيير &nbsp;•&nbsp; ضغطتين سريعتين = مسح</div>
+</div>
+
+<div class="week-bar">
+  <span class="week-lbl">📅 الأسبوع:</span>
+  <input class="week-inp" id="weekLabel" type="text" placeholder="مثال: 1 - 7 يناير" oninput="saveWeekLabel()">
+</div>
+
+<div class="summary">
+  <div class="sum-item">
+    <div class="sum-icon">✅</div>
+    <div class="sum-val" style="color:var(--green)" id="totalChecks">0</div>
+    <div class="sum-lbl">منجز</div>
+  </div>
+  <div class="sum-item">
+    <div class="sum-icon">⭐</div>
+    <div class="sum-val" style="color:var(--gold)" id="totalStars">0</div>
+    <div class="sum-lbl">ممتاز</div>
+  </div>
+  <div class="sum-item">
+    <div class="sum-icon">❌</div>
+    <div class="sum-val" style="color:var(--red)" id="totalCross">0</div>
+    <div class="sum-lbl">فائت</div>
+  </div>
+  <div class="sum-item">
+    <div class="sum-icon">📊</div>
+    <div class="sum-val" style="color:var(--blue)" id="totalPct">0%</div>
+    <div class="sum-lbl">الإنجاز</div>
+  </div>
+  <div class="sum-coins">
+    <div class="sum-coins-val">💰 <span id="totalCoins">0</span> فلس</div>
+    <div class="sum-coins-lbl">إجمالي الأسبوع</div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="leg"><div class="leg-dot" style="background:rgba(212,168,67,.4)"></div>صلاة</div>
+  <div class="leg"><div class="leg-dot" style="background:rgba(88,166,255,.4)"></div>وضوء</div>
+  <div class="leg"><div class="leg-dot" style="background:rgba(63,185,80,.4)"></div>أذكار</div>
+  <div class="leg"><div class="leg-dot" style="background:rgba(188,140,255,.4)"></div>قرآن</div>
+  <div class="leg"><div class="leg-dot" style="background:rgba(240,136,62,.4)"></div>وجبة</div>
+  <div class="leg"><div class="leg-dot" style="background:rgba(88,166,255,.5)"></div>مذاكرة</div>
+  <div class="leg"><div class="leg-dot" style="background:rgba(248,81,73,.4)"></div>متعلقاتي</div>
+</div>
+
+<div class="tbl-wrap">
+<table>
+  <thead>
+    <tr>
+      <th class="th-lbl">المهمة</th>
+      <th class="th-sat">السبت</th>
+      <th>الأحد</th><th>الإثنين</th><th>الثلاثاء</th><th>الأربعاء</th><th>الخميس</th>
+      <th class="th-fri">الجمعة</th>
+    </tr>
+  </thead>
+  <tbody id="tbody"></tbody>
+  <tfoot>
+    <tr class="totals-row">
+      <td class="lbl">💰 حصالة اليوم</td>
+      <td id="d0">0</td><td id="d1">0</td><td id="d2">0</td>
+      <td id="d3">0</td><td id="d4">0</td><td id="d5">0</td><td id="d6">0</td>
+    </tr>
+  </tfoot>
+</table>
+</div>
+
+<div class="reset-wrap">
+  <button class="reset-btn" onclick="resetWeek()">🗑️ مسح بيانات الأسبوع كاملاً والبدء من جديد</button>
+</div>
+<div class="bottom"></div>
+
+<div class="ib" id="installBanner">
+  <div>📋</div>
+  <div class="ib-txt"><div class="ib-tt">ثبّت جدول مهامي</div><div class="ib-sb">شغّله بدون نت</div></div>
+  <button class="ib-btn" id="installBtn">تثبيت</button>
+  <button class="ib-x" id="installClose">✕</button>
+</div>
+
+<script>
+const SECTIONS=[
+  {label:"🌅 فترة الصباح",cls:"sec-morning",tasks:[
+    {n:"الاستيقاظ",t:"normal"},
+    {n:"إسباغ الوضوء",t:"wudu"},
+    {n:"صلاة الفجر",t:"prayer"},
+    {n:"أذكار الصباح",t:"azkar"},
+    {n:"مراجعة القرآن",t:"quran"},
+    {n:"ترتيب الغرفة",t:"normal"},
+    {n:"ترتيب ملابسي ومراجعة متعلقاتي",t:"personal"},
+    {n:"تناول الإفطار",t:"meal"},
+    {n:"المذاكرة (ساعتين)",t:"study"},
+  ]},
+  {label:"☀️ فترة منتصف اليوم",cls:"sec-midday",tasks:[
+    {n:"إسباغ الوضوء",t:"wudu"},
+    {n:"صلاة الظهر",t:"prayer"},
+    {n:"المذاكرة (3 ساعات)",t:"study"},
+    {n:"ترتيب ملابسي ومراجعة متعلقاتي",t:"personal"},
+    {n:"وقت المنزل",t:"normal"},
+    {n:"إسباغ الوضوء",t:"wudu"},
+    {n:"صلاة العصر",t:"prayer"},
+    {n:"أذكار المساء",t:"azkar"},
+    {n:"تناول الغداء",t:"meal"},
+  ]},
+  {label:"🌙 فترة المساء",cls:"sec-evening",tasks:[
+    {n:"إسباغ الوضوء",t:"wudu"},
+    {n:"صلاة المغرب",t:"prayer"},
+    {n:"حل الواجبات",t:"study"},
+    {n:"إسباغ الوضوء",t:"wudu"},
+    {n:"صلاة العشاء",t:"prayer"},
+    {n:"الاستحمام (وقت مناسب)",t:"normal"},
+    {n:"غسيل الأسنان",t:"normal"},
+    {n:"أذكار النوم",t:"azkar"},
+    {n:"النوم مبكراً",t:"normal"},
+  ]},
+];
+
+const STATES=["","✅","⭐","❌"];
+const SCORE={"✅":5,"❌":-5,"⭐":10,"":0};
+const ALL_TASKS=[];
+SECTIONS.forEach(s=>s.tasks.forEach(t=>ALL_TASKS.push(t)));
+const N=ALL_TASKS.length;
+let currentUser="سادن";
+
+function loadAll(){try{return JSON.parse(localStorage.getItem('mahami_data'))||{};}catch(e){return{}}}
+function saveAll(d){localStorage.setItem('mahami_data',JSON.stringify(d))}
+function getVal(ti,di){const d=loadAll();return((d[currentUser]||{})[`${ti}-${di}`])||""}
+function setVal(ti,di,v){const d=loadAll();if(!d[currentUser])d[currentUser]={};d[currentUser][`${ti}-${di}`]=v;saveAll(d)}
+function saveWeekLabel(){const d=loadAll();if(!d.__wk)d.__wk={};d.__wk[currentUser]=document.getElementById('weekLabel').value;saveAll(d)}
+function loadWeekLabel(){const d=loadAll();document.getElementById('weekLabel').value=(d.__wk||{})[currentUser]||''}
+
+function switchUser(u){
+  currentUser=u;
+  document.querySelectorAll('.utab').forEach(b=>b.classList.toggle('active',b.textContent.trim().includes(u)));
+  document.getElementById('pageTitle').textContent=`جدول مهام ${u}`;
+  buildTable();
+}
+
+function stateClass(v){return v==="✅"?"check":v==="❌"?"cross":v==="⭐"?"star":""}
+
+function buildTable(){
+  const tbody=document.getElementById('tbody');
+  tbody.innerHTML='';
+  let ti=0;
+  SECTIONS.forEach(sec=>{
+    const sr=tbody.insertRow();sr.className=sec.cls;
+    const std=sr.insertCell();std.colSpan=8;std.textContent=sec.label;
+    sec.tasks.forEach(task=>{
+      const idx=ti++;
+      const tr=tbody.insertRow();tr.className='task-row';
+      const lbl=tr.insertCell();lbl.className=`lbl t-${task.t}`;lbl.textContent=task.n;
+      for(let di=0;di<7;di++){
+        const td=tr.insertCell();td.className=`t-${task.t}`;
+        const v=getVal(idx,di);
+        const div=document.createElement('div');
+        div.className='cell '+stateClass(v);
+        if(!v)div.classList.add('empty');
+        div.textContent=v;
+        let timer=null;
+        div.addEventListener('click',()=>{
+          if(timer){clearTimeout(timer);timer=null;applyVal(idx,di,div,"");}
+          else{timer=setTimeout(()=>{timer=null;const next=STATES[(STATES.indexOf(div.textContent)+1)%STATES.length];applyVal(idx,di,div,next);},230);}
+        });
+        td.appendChild(div);
+      }
+    });
+  });
+  calcTotals();loadWeekLabel();
+}
+
+function applyVal(ti,di,div,v){
+  setVal(ti,di,v);
+  div.textContent=v;div.className='cell '+stateClass(v);
+  if(!v)div.classList.add('empty');
+  calcTotals();
+}
+
+function calcTotals(){
+  let weekly=0,checks=0,stars=0,crosses=0,total=0,done=0;
+  for(let di=0;di<7;di++){
+    let day=0;
+    for(let ti=0;ti<N;ti++){
+      const v=getVal(ti,di);
+      day+=SCORE[v]||0;total++;
+      if(v==="✅"){checks++;done++;}
+      if(v==="⭐"){stars++;done++;}
+      if(v==="❌")crosses++;
+    }
+    const el=document.getElementById(`d${di}`);
+    el.textContent=(day>0?"+":"")+day+" ف";
+    el.className=day>0?"pos":day<0?"neg":"";
+    weekly+=day;
+  }
+  document.getElementById('totalChecks').textContent=checks;
+  document.getElementById('totalStars').textContent=stars;
+  document.getElementById('totalCross').textContent=crosses;
+  document.getElementById('totalPct').textContent=total>0?Math.round((done/total)*100)+'%':'0%';
+  const tc=document.getElementById('totalCoins');
+  tc.textContent=(weekly>0?"+":"")+weekly;
+  tc.parentElement.style.color=weekly>0?"var(--green)":weekly<0?"var(--red)":"var(--gold)";
+}
+
+function resetWeek(){
+  if(confirm(`مسح بيانات ${currentUser} للأسبوع كاملاً؟`)){
+    const d=loadAll();d[currentUser]={};
+    if(d.__wk)d.__wk[currentUser]='';
+    saveAll(d);buildTable();
+  }
+}
+
+buildTable();
+
+// PWA Install
+let deferredPrompt=null;
+const ib=document.getElementById('installBanner');
+const ibBtn=document.getElementById('installBtn');
+const ibX=document.getElementById('installClose');
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredPrompt=e;
+  if(!localStorage.getItem('mahami_installed'))setTimeout(()=>ib.classList.add('show'),2000);
+});
+ibBtn.addEventListener('click',async()=>{
+  if(deferredPrompt){await deferredPrompt.prompt();deferredPrompt=null;}
+  ib.classList.remove('show');localStorage.setItem('mahami_installed','1');
+});
+ibX.addEventListener('click',()=>{ib.classList.remove('show');localStorage.setItem('mahami_installed','1')});
+window.addEventListener('appinstalled',()=>{ib.classList.remove('show')});
+</script>
+</body>
+</html>
