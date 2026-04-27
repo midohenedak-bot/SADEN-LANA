@@ -2,200 +2,499 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>جدول مهامي</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>جدول المهام الذكي</title>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="مهامي">
-<meta name="theme-color" content="#0d1117">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
-<script>
-if('serviceWorker' in navigator){
-  const C='mahami-v1';
-  const sw=`
-self.addEventListener('install',e=>{e.waitUntil(caches.open('${C}').then(c=>c.addAll(['./'])).then(()=>self.skipWaiting()))});
-self.addEventListener('activate',e=>e.waitUntil(clients.claim()));
-self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const cl=res.clone();caches.open('${C}').then(c=>c.put(e.request,cl));return res}).catch(()=>caches.match('./')))));
-  `;
-  const blob=new Blob([sw],{type:'application/javascript'});
-  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
-}
-const manifest={name:'جدول مهامي',short_name:'مهامي',description:'جدول مهام سادن ولانا الأسبوعي',start_url:'.',display:'standalone',background_color:'#0d1117',theme_color:'#0d1117',orientation:'portrait',icons:[{src:"data:image/svg+xml,"+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="100" fill="#0d1117"/><text y="360" x="80" font-size="320">📋</text></svg>`),sizes:'512x512',type:'image/svg+xml',purpose:'any maskable'}]};
-const ml=document.createElement('link');ml.rel='manifest';ml.href=URL.createObjectURL(new Blob([JSON.stringify(manifest)],{type:'application/json'}));document.head.appendChild(ml);
-</script>
+<meta name="apple-mobile-web-app-title" content="جدول المهام">
+<meta name="theme-color" content="#1a3a2a">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
-:root{
-  --bg:#0d1117;--bg2:#161b22;--bg3:#1c2128;--bg4:#21262d;
-  --brd:rgba(255,255,255,.08);--brd2:rgba(255,255,255,.12);
-  --txt:#e6edf3;--mut:#7d8590;--mut2:#484f58;
-  --gold:#d4a843;--gold2:#f0c060;--gold-bg:rgba(212,168,67,.1);
-  --green:#3fb950;--green-bg:rgba(63,185,80,.1);
-  --red:#f85149;--red-bg:rgba(248,81,73,.1);
-  --blue:#58a6ff;--blue-bg:rgba(88,166,255,.1);
-  --purple:#bc8cff;--purple-bg:rgba(188,140,255,.1);
-  --orange:#f0883e;--orange-bg:rgba(240,136,62,.1);
-  --teal:#39d353;
-  --r:14px;--rs:10px;--rx:8px;
-  --shd:0 8px 32px rgba(0,0,0,.4);
-  --shd2:0 2px 8px rgba(0,0,0,.3);
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
+
+:root {
+  --green:   #1a3a2a;
+  --gold:    #c9a84c;
+  --bg:      #f5f0e8;
+  --reward:  #4caf50;
+  --penalty: #f44336;
 }
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--txt);direction:rtl;min-height:100vh;overflow-x:hidden}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Cairo', sans-serif; background: var(--bg); direction: rtl; }
 
-/* HEADER */
-.hdr{background:var(--bg2);border-bottom:1px solid var(--brd);padding:12px 16px 10px;position:sticky;top:0;z-index:100;box-shadow:var(--shd2)}
-.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.hdr-logo{font-size:1.15rem;font-weight:900;color:var(--gold);display:flex;align-items:center;gap:7px}
-.hdr-hint{font-size:.62rem;color:var(--mut);text-align:center}
+.header {
+  background: var(--green);
+  padding: 12px 16px 8px;
+  text-align: center;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.header h1 { font-size: 19px; color: var(--gold); font-weight: 900; }
+.header .hint { font-size: 10px; color: rgba(255,255,255,0.6); margin-top: 3px; }
 
-/* USER TABS */
-.user-tabs{display:flex;gap:8px;background:var(--bg3);border-radius:var(--r);padding:4px}
-.utab{flex:1;padding:7px 0;border:none;border-radius:var(--rs);background:transparent;color:var(--mut);font-family:'Cairo',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .2s}
-.utab.active{background:var(--gold);color:#0d1117;box-shadow:0 2px 8px rgba(212,168,67,.3)}
+.user-bar {
+  background: #162e20;
+  padding: 8px 16px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  border-top: 1px solid rgba(201,168,76,0.2);
+}
+.user-btn {
+  padding: 7px 28px;
+  border: 2px solid rgba(201,168,76,0.4);
+  border-radius: 20px;
+  background: transparent;
+  color: rgba(255,255,255,0.6);
+  font-family: 'Cairo', sans-serif;
+  font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: all 0.2s;
+}
+.user-btn.active { background: var(--gold); border-color: var(--gold); color: var(--green); }
 
-/* WEEK BAR */
-.week-bar{background:var(--bg3);border-bottom:1px solid var(--brd);padding:8px 16px;display:flex;align-items:center;gap:10px}
-.week-lbl{font-size:.72rem;color:var(--gold);font-weight:700;white-space:nowrap}
-.week-inp{flex:1;background:var(--bg4);border:1px solid var(--brd2);border-radius:var(--rx);color:var(--txt);font-family:'Cairo',sans-serif;font-size:.75rem;padding:6px 10px;text-align:center;outline:none}
-.week-inp::placeholder{color:var(--mut2)}
-.week-inp:focus{border-color:var(--gold)}
+.week-bar {
+  background: #1e3d2a;
+  padding: 6px 16px;
+  display: flex; align-items: center; gap: 8px; justify-content: center;
+}
+.week-bar label { color: var(--gold); font-size: 12px; white-space: nowrap; }
+.week-bar input {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(201,168,76,0.35);
+  border-radius: 6px; color: white;
+  font-family: 'Cairo', sans-serif; font-size: 12px;
+  padding: 4px 10px; width: 170px; text-align: center;
+}
+.week-bar input::placeholder { color: rgba(255,255,255,0.35); }
 
-/* SUMMARY */
-.summary{background:var(--bg2);border-bottom:1px solid var(--brd);padding:10px 16px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.sum-item{background:var(--bg3);border-radius:var(--rs);padding:8px 6px;text-align:center;border:1px solid var(--brd)}
-.sum-icon{font-size:1.1rem}
-.sum-val{font-size:1rem;font-weight:900;margin-top:1px}
-.sum-lbl{font-size:.55rem;color:var(--mut);margin-top:1px}
-.sum-coins{grid-column:span 4;background:var(--gold-bg);border:1px solid rgba(212,168,67,.25);border-radius:var(--rs);padding:10px;text-align:center}
-.sum-coins-val{font-size:1.3rem;font-weight:900;color:var(--gold)}
-.sum-coins-lbl{font-size:.65rem;color:var(--mut);margin-top:2px}
+.summary {
+  background: var(--green); color: var(--gold);
+  padding: 10px 14px;
+  display: flex; justify-content: space-around;
+  align-items: center; flex-wrap: wrap; gap: 6px;
+  font-weight: 700; font-size: 13px;
+}
+.summary .big { font-size: 18px; }
 
-/* LEGEND */
-.legend{background:var(--bg3);border-bottom:1px solid var(--brd);padding:8px 12px;display:flex;flex-wrap:wrap;gap:7px;justify-content:center}
-.leg{display:flex;align-items:center;gap:4px;font-size:.62rem;color:var(--mut)}
-.leg-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.level-bar {
+  background: #162e20;
+  padding: 8px 16px;
+  text-align: center;
+  border-top: 1px solid rgba(201,168,76,0.2);
+}
+.level-info {
+  color: var(--gold);
+  font-size: 13px;
+  font-weight: 700;
+}
+.level-progress {
+  width: 100%;
+  height: 8px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+.level-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold), #ffd700);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
 
-/* TABLE */
-.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-table{width:100%;border-collapse:collapse;min-width:460px}
+.motivation-banner {
+  background: linear-gradient(135deg, #1a3a2a, #2d5a3d);
+  color: var(--gold);
+  padding: 10px 16px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  animation: slideIn 0.5s ease;
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
-thead th{background:var(--bg2);color:var(--txt);font-size:.68rem;font-weight:700;padding:8px 3px;border:1px solid var(--brd);white-space:nowrap;text-align:center}
-thead th.th-lbl{text-align:right;padding-right:10px;width:120px;min-width:120px;background:var(--bg3)}
-thead th.th-sat{background:rgba(63,185,80,.12);color:var(--green)}
-thead th.th-fri{background:rgba(212,168,67,.12);color:var(--gold)}
+.legend {
+  background: #162e20; padding: 7px 12px;
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+}
+.leg { display:flex; align-items:center; gap:3px; font-size:10px; color:rgba(255,255,255,0.7); }
+.leg-dot { width:11px; height:11px; border-radius:2px; flex-shrink:0; }
 
-/* SECTION HEADERS */
-.sec-morning td{background:linear-gradient(90deg,rgba(240,136,62,.25),rgba(240,136,62,.15));color:var(--orange);font-weight:900;font-size:.72rem;padding:6px 12px;border:1px solid rgba(240,136,62,.2)}
-.sec-midday td{background:linear-gradient(90deg,rgba(88,166,255,.25),rgba(88,166,255,.15));color:var(--blue);font-weight:900;font-size:.72rem;padding:6px 12px;border:1px solid rgba(88,166,255,.2)}
-.sec-evening td{background:linear-gradient(90deg,rgba(188,140,255,.25),rgba(188,140,255,.15));color:var(--purple);font-weight:900;font-size:.72rem;padding:6px 12px;border:1px solid rgba(188,140,255,.2)}
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { width:100%; border-collapse:collapse; min-width:500px; }
 
-/* TASK ROWS */
-.task-row td{border:1px solid var(--brd);padding:0;height:40px}
-.task-row .lbl{font-size:.65rem;font-weight:600;padding:0 8px;text-align:right;vertical-align:middle;border-right:2px solid var(--brd2);width:120px;min-width:120px}
+thead th {
+  background: var(--green); color: white;
+  font-size: 11px; font-weight: 700;
+  padding: 7px 3px; border: 1px solid rgba(255,255,255,0.12);
+  white-space: nowrap;
+}
+thead th.th-label { text-align:right; padding-right:8px; width:160px; min-width:160px; }
+thead th.th-sat   { background: #2d5a3d; }
+thead th.th-fri   { background: #7a5a00; }
 
-/* TASK TYPE COLORS */
-.t-prayer  .lbl,.t-prayer  {background:rgba(212,168,67,.06);color:#c9a040}
-.t-wudu    .lbl,.t-wudu    {background:rgba(88,166,255,.06);color:#6aacff}
-.t-azkar   .lbl,.t-azkar   {background:rgba(63,185,80,.06);color:#5acc70}
-.t-quran   .lbl,.t-quran   {background:rgba(188,140,255,.06);color:#cc9eff}
-.t-meal    .lbl,.t-meal    {background:rgba(240,136,62,.06);color:#f09a50}
-.t-study   .lbl,.t-study   {background:rgba(88,166,255,.08);color:#70b8ff}
-.t-personal.lbl,.t-personal{background:rgba(248,81,73,.05);color:#f88080}
-.t-normal  .lbl,.t-normal  {background:var(--bg3);color:var(--txt)}
+.sec-morning td { background:linear-gradient(90deg,#c87000,#e07800); color:#fff; font-weight:700; font-size:11.5px; padding:4px 10px; }
+.sec-midday  td { background:linear-gradient(90deg,#0d47a1,#1565c0); color:#fff; font-weight:700; font-size:11.5px; padding:4px 10px; }
+.sec-evening td { background:linear-gradient(90deg,#311b92,#4527a0); color:#fff; font-weight:700; font-size:11.5px; padding:4px 10px; }
+.sec-extra   td { background:linear-gradient(90deg,#1a5c3a,#2a7c4a); color:#fff; font-weight:700; font-size:11.5px; padding:4px 10px; }
 
-/* CELL */
-.cell{width:100%;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;user-select:none;transition:transform .1s,background .15s}
-.cell:active{transform:scale(.75)}
-.cell.empty::after{content:"·";color:var(--mut2);font-size:22px}
-.cell.check{background:rgba(63,185,80,.2)!important}
-.cell.cross{background:rgba(248,81,73,.18)!important}
-.cell.star {background:rgba(212,168,67,.22)!important}
+.task-row td { border:1px solid #d0c090; padding:0; height:38px; }
+.task-row .lbl {
+  font-size:11px; font-weight:600;
+  padding:0 8px; text-align:right; vertical-align:middle;
+  border-right:3px solid var(--gold);
+  width:160px; min-width:160px;
+}
 
-/* TOTALS */
-.totals-row td{background:var(--bg3);font-weight:700;font-size:.68rem;text-align:center;padding:6px 2px;border:1px solid var(--brd)}
-.totals-row .lbl{text-align:right;background:var(--bg4);font-size:.65rem;color:var(--gold)}
-.pos{color:var(--green)}
-.neg{color:var(--red)}
+.cell {
+  width:100%; height:38px;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; font-size:19px;
+  user-select:none; -webkit-tap-highlight-color:transparent;
+  transition:transform 0.1s;
+}
+.cell:active { transform:scale(0.8); }
+.cell.empty::after { content:"·"; color:#ccc; font-size:24px; line-height:1; }
+.cell.check { background:rgba(40,167,69,0.18) !important; }
+.cell.cross { background:rgba(220,53,69,0.15) !important; }
+.cell.star  { background:rgba(255,193,7,0.2)  !important; }
 
-/* RESET BTN */
-.reset-wrap{padding:14px 16px}
-.reset-btn{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,81,73,.2);border-radius:var(--r);padding:13px;width:100%;cursor:pointer;font-family:'Cairo',sans-serif;font-size:.82rem;font-weight:700;transition:all .2s}
-.reset-btn:active{background:rgba(248,81,73,.3)}
+.t-prayer  { background:#fff8dc; color:#7a4400; }
+.t-sunna   { background:#fff0d0; color:#8a5a00; }
+.t-wudu    { background:#eaf4ff; color:#1a4a7a; }
+.t-azkar   { background:#f0f8ee; color:#2a5a2a; }
+.t-quran   { background:#fdf0ff; color:#5a2a7a; }
+.t-meal    { background:#fff5ee; color:#7a3a10; }
+.t-study   { background:#eef5ff; color:#1a3a6a; }
+.t-personal{ background:#fff0f8; color:#7a2a5a; }
+.t-normal  { background:#fafafa; color:#222;    }
+.t-reward  { background:#e8f5e9; color:#1b5e20; }
+.t-penalty { background:#ffebee; color:#b71c1c; }
 
-/* INSTALL BANNER */
-.ib{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(120px);z-index:400;background:var(--gold);color:#0d1117;border-radius:16px;padding:11px 15px;display:flex;align-items:center;gap:11px;box-shadow:var(--shd);transition:transform .5s cubic-bezier(.34,1.56,.64,1);min-width:250px;max-width:310px;pointer-events:none}
-.ib.show{transform:translateX(-50%) translateY(0);pointer-events:auto}
-.ib-txt{flex:1}
-.ib-tt{font-weight:900;font-size:.85rem}
-.ib-sb{font-size:.65rem;opacity:.75}
-.ib-btn{background:#0d1117;color:var(--gold);border:none;border-radius:10px;padding:7px 14px;font-family:'Cairo',sans-serif;font-size:.75rem;font-weight:700;cursor:pointer;white-space:nowrap}
-.ib-x{background:transparent;border:none;color:#0d1117;font-size:1rem;cursor:pointer;padding:0 4px;opacity:.7}
+.totals-row td {
+  background:#e0d8c8; font-weight:700; font-size:11px;
+  text-align:center; padding:5px 2px; border:1px solid #c8b870;
+}
+.totals-row .lbl { text-align:right; background:#d8d0be; font-size:11px; }
+.pos { color:#155724; }
+.neg { color:#721c24; }
 
-.bottom{height:env(safe-area-inset-bottom,20px)}
+.extra-input-row td {
+  background: #f0ece0;
+  padding: 4px 8px;
+  border: 1px solid #d0c090;
+}
+.extra-input-row input, .extra-input-row select {
+  font-family: 'Cairo', sans-serif;
+  font-size: 11px;
+  padding: 4px 8px;
+  border: 1px solid #c9a84c;
+  border-radius: 4px;
+  background: white;
+}
+.extra-input-row .lbl {
+  font-size: 10px;
+  font-weight: 600;
+  color: #1a3a2a;
+  text-align: right;
+}
+.add-extra-btn {
+  background: var(--green);
+  color: var(--gold);
+  border: none;
+  padding: 6px 12px;
+  font-family: 'Cairo', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.add-extra-btn:active { opacity: 0.8; }
+
+.action-bar {
+  background: #162e20;
+  padding: 10px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  border-top: 1px solid rgba(201,168,76,0.2);
+}
+.action-btn {
+  background: rgba(201,168,76,0.15);
+  color: var(--gold);
+  border: 1px solid rgba(201,168,76,0.4);
+  padding: 8px 16px;
+  font-family: 'Cairo', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 20px;
+  transition: all 0.2s;
+}
+.action-btn:hover { background: var(--gold); color: var(--green); }
+.action-btn:active { transform: scale(0.95); }
+
+.stats-panel, .rewards-panel, .challenge-panel, .compare-panel {
+  background: white;
+  margin: 10px;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  display: none;
+}
+.panel-title {
+  color: var(--green);
+  font-size: 16px;
+  font-weight: 900;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.chart-container {
+  position: relative;
+  height: 200px;
+  margin: 10px 0;
+}
+
+.reward-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: #f5f0e8;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.reward-item.locked { opacity: 0.5; }
+.reward-item.unlocked { border: 2px solid var(--gold); background: #fff8dc; }
+.reward-icon { font-size: 28px; }
+.reward-info { flex: 1; }
+.reward-name { font-weight: 700; color: var(--green); font-size: 13px; }
+.reward-desc { font-size: 11px; color: #666; }
+.reward-status { font-size: 11px; font-weight: 700; }
+
+.challenge-box {
+  background: linear-gradient(135deg, #1a3a2a, #2d5a3d);
+  color: white;
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+  margin-bottom: 10px;
+}
+.challenge-title { font-size: 18px; font-weight: 900; color: var(--gold); }
+.challenge-desc { font-size: 13px; margin-top: 6px; }
+.challenge-progress { 
+  background: rgba(255,255,255,0.2); 
+  height: 10px; 
+  border-radius: 5px; 
+  margin-top: 10px;
+  overflow: hidden;
+}
+.challenge-progress-fill {
+  background: var(--gold);
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.5s ease;
+}
+
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.compare-table th, .compare-table td {
+  padding: 8px;
+  text-align: center;
+  border: 1px solid #d0c090;
+  font-size: 12px;
+}
+.compare-table th {
+  background: var(--green);
+  color: white;
+}
+.compare-winner { background: #e8f5e9; font-weight: 700; }
+
+.reset-btn {
+  background:#5a1520; color:white; border:none;
+  padding:13px; width:100%; cursor:pointer;
+  font-family:'Cairo',sans-serif; font-size:14px; font-weight:700;
+}
+.reset-btn:active { background:#7a1f2a; }
+.bottom { height:4px; background:linear-gradient(90deg,var(--green),var(--gold) 50%,var(--green)); }
+
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal-overlay.active { display: flex; }
+.modal-box {
+  background: white;
+  padding: 24px;
+  border-radius: 16px;
+  text-align: center;
+  max-width: 300px;
+  width: 90%;
+  animation: popIn 0.3s ease;
+}
+@keyframes popIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.modal-icon { font-size: 48px; margin-bottom: 10px; }
+.modal-title { font-size: 20px; font-weight: 900; color: var(--green); }
+.modal-text { font-size: 14px; color: #555; margin-top: 8px; }
+.modal-btn {
+  background: var(--green);
+  color: var(--gold);
+  border: none;
+  padding: 10px 24px;
+  font-family: 'Cairo', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 20px;
+  margin-top: 16px;
+}
+
+.streak-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #ff6b35;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+}
 </style>
 </head>
 <body>
 
-<div class="hdr">
-  <div class="hdr-top">
-    <div class="hdr-logo">📋 <span id="pageTitle">جدول مهام سادن</span></div>
+<!-- Celebration Modal -->
+<div class="modal-overlay" id="celebrationModal">
+  <div class="modal-box">
+    <div class="modal-icon" id="modalIcon">🎉</div>
+    <div class="modal-title" id="modalTitle">مبروك!</div>
+    <div class="modal-text" id="modalText">وصلت لمستوى جديد!</div>
+    <button class="modal-btn" onclick="closeModal()">ممتاز! 🚀</button>
   </div>
-  <div class="user-tabs">
-    <button class="utab active" onclick="switchUser('سادن')">🌟 سادن</button>
-    <button class="utab" onclick="switchUser('لانا')">🌸 لانا</button>
-  </div>
-  <div class="hdr-hint" style="margin-top:7px">ضغطة = تغيير &nbsp;•&nbsp; ضغطتين سريعتين = مسح</div>
+</div>
+
+<div class="header">
+  <h1 id="pageTitle">📋 جدول مهام سادن</h1>
+  <div class="hint">ضغطة واحدة = تغيير &nbsp;|&nbsp; ضغطتين سريعتين = مسح الخانة</div>
+</div>
+
+<div class="user-bar">
+  <button class="user-btn active" onclick="switchUser('سادن')">سادن</button>
+  <button class="user-btn"        onclick="switchUser('لانا')">لانا</button>
 </div>
 
 <div class="week-bar">
-  <span class="week-lbl">📅 الأسبوع:</span>
-  <input class="week-inp" id="weekLabel" type="text" placeholder="مثال: 1 - 7 يناير" oninput="saveWeekLabel()">
+  <label>الأسبوع:</label>
+  <input id="weekLabel" type="text" placeholder="مثال: 1 - 7 يناير" oninput="saveWeekLabel()">
+</div>
+
+<div class="level-bar">
+  <div class="level-info">
+    🏆 <span id="levelName">المبتدئ</span> 
+    <span class="streak-badge" id="streakBadge" style="display:none;">🔥 <span id="streakCount">0</span> يوم</span>
+  </div>
+  <div class="level-progress">
+    <div class="level-progress-fill" id="levelProgress" style="width:0%"></div>
+  </div>
+</div>
+
+<div class="motivation-banner" id="motivationBanner">
+  🌟 ابدأ يومك ببسمة! كل خطوة صغيرة بتقربك من الهدف
 </div>
 
 <div class="summary">
-  <div class="sum-item">
-    <div class="sum-icon">✅</div>
-    <div class="sum-val" style="color:var(--green)" id="totalChecks">0</div>
-    <div class="sum-lbl">منجز</div>
-  </div>
-  <div class="sum-item">
-    <div class="sum-icon">⭐</div>
-    <div class="sum-val" style="color:var(--gold)" id="totalStars">0</div>
-    <div class="sum-lbl">ممتاز</div>
-  </div>
-  <div class="sum-item">
-    <div class="sum-icon">❌</div>
-    <div class="sum-val" style="color:var(--red)" id="totalCross">0</div>
-    <div class="sum-lbl">فائت</div>
-  </div>
-  <div class="sum-item">
-    <div class="sum-icon">📊</div>
-    <div class="sum-val" style="color:var(--blue)" id="totalPct">0%</div>
-    <div class="sum-lbl">الإنجاز</div>
-  </div>
-  <div class="sum-coins">
-    <div class="sum-coins-val">💰 <span id="totalCoins">0</span> فلس</div>
-    <div class="sum-coins-lbl">إجمالي الأسبوع</div>
-  </div>
+  <span>✅ <span id="totalChecks">0</span></span>
+  <span>⭐ <span id="totalStars">0</span></span>
+  <span>❌ <span id="totalCross">0</span></span>
+  <span class="big">💰 إجمالي الأسبوع: <span id="totalCoins">0</span> فلس</span>
 </div>
 
 <div class="legend">
-  <div class="leg"><div class="leg-dot" style="background:rgba(212,168,67,.4)"></div>صلاة</div>
-  <div class="leg"><div class="leg-dot" style="background:rgba(88,166,255,.4)"></div>وضوء</div>
-  <div class="leg"><div class="leg-dot" style="background:rgba(63,185,80,.4)"></div>أذكار</div>
-  <div class="leg"><div class="leg-dot" style="background:rgba(188,140,255,.4)"></div>قرآن</div>
-  <div class="leg"><div class="leg-dot" style="background:rgba(240,136,62,.4)"></div>وجبة</div>
-  <div class="leg"><div class="leg-dot" style="background:rgba(88,166,255,.5)"></div>مذاكرة</div>
-  <div class="leg"><div class="leg-dot" style="background:rgba(248,81,73,.4)"></div>متعلقاتي</div>
+  <div class="leg"><div class="leg-dot" style="background:#fff8dc;border:1px solid #c9a84c;"></div>صلاة فرض</div>
+  <div class="leg"><div class="leg-dot" style="background:#fff0d0;border:1px solid #c9a84c;"></div>صلاة سنة</div>
+  <div class="leg"><div class="leg-dot" style="background:#eaf4ff;border:1px solid #7aaadd;"></div>وضوء</div>
+  <div class="leg"><div class="leg-dot" style="background:#f0f8ee;border:1px solid #7aaa7a;"></div>أذكار</div>
+  <div class="leg"><div class="leg-dot" style="background:#fdf0ff;border:1px solid #aa7acc;"></div>قرآن</div>
+  <div class="leg"><div class="leg-dot" style="background:#fff5ee;border:1px solid #cc8844;"></div>وجبة</div>
+  <div class="leg"><div class="leg-dot" style="background:#eef5ff;border:1px solid #6699cc;"></div>مذاكرة</div>
+  <div class="leg"><div class="leg-dot" style="background:#fff0f8;border:1px solid #cc6699;"></div>متعلقاتي</div>
+  <div class="leg"><div class="leg-dot" style="background:#e8f5e9;border:1px solid #4caf50;"></div>مكافأة</div>
+  <div class="leg"><div class="leg-dot" style="background:#ffebee;border:1px solid #f44336;"></div>عقاب</div>
 </div>
 
-<div class="tbl-wrap">
+<div class="action-bar">
+  <button class="action-btn" onclick="togglePanel('stats')">📊 تقريري</button>
+  <button class="action-btn" onclick="togglePanel('rewards')">🏆 مكافآتي</button>
+  <button class="action-btn" onclick="togglePanel('challenge')">🎯 التحدي</button>
+  <button class="action-btn" onclick="togglePanel('compare')">⚔️ مقارنة</button>
+  <button class="action-btn" onclick="exportPDF()">🖨️ PDF</button>
+  <button class="action-btn" onclick="shareData()">📤 مشاركة</button>
+</div>
+
+<!-- Stats Panel -->
+<div class="stats-panel" id="statsPanel">
+  <div class="panel-title">📊 تقرير أدائي</div>
+  <div class="chart-container">
+    <canvas id="weeklyChart"></canvas>
+  </div>
+  <div id="statsDetails" style="margin-top:10px;font-size:12px;color:#555;text-align:center;"></div>
+</div>
+
+<!-- Rewards Panel -->
+<div class="rewards-panel" id="rewardsPanel">
+  <div class="panel-title">🏆 صندوق المكافآت</div>
+  <div id="rewardsList"></div>
+</div>
+
+<!-- Challenge Panel -->
+<div class="challenge-panel" id="challengePanel">
+  <div class="panel-title">🎯 التحدي الأسبوعي</div>
+  <div class="challenge-box">
+    <div class="challenge-title" id="challengeTitle">تحدي الصلاة</div>
+    <div class="challenge-desc" id="challengeDesc">أكمل صلاة الفجر 7 أيام متتالية</div>
+    <div class="challenge-progress">
+      <div class="challenge-progress-fill" id="challengeProgress" style="width:0%"></div>
+    </div>
+    <div style="margin-top:6px;font-size:11px;" id="challengeStatus">0 / 7 أيام</div>
+  </div>
+  <div id="challengeReward" style="text-align:center;font-size:13px;color:var(--green);font-weight:700;"></div>
+</div>
+
+<!-- Compare Panel -->
+<div class="compare-panel" id="comparePanel">
+  <div class="panel-title">⚔️ من الأفضل هذا الأسبوع؟</div>
+  <table class="compare-table">
+    <thead>
+      <tr><th>المؤشر</th><th>سادن</th><th>لانا</th></tr>
+    </thead>
+    <tbody id="compareBody"></tbody>
+  </table>
+</div>
+
+<div class="table-wrap">
 <table>
   <thead>
     <tr>
-      <th class="th-lbl">المهمة</th>
+      <th class="th-label">المهمة</th>
       <th class="th-sat">السبت</th>
       <th>الأحد</th><th>الإثنين</th><th>الثلاثاء</th><th>الأربعاء</th><th>الخميس</th>
       <th class="th-fri">الجمعة</th>
@@ -212,166 +511,106 @@ thead th.th-fri{background:rgba(212,168,67,.12);color:var(--gold)}
 </table>
 </div>
 
-<div class="reset-wrap">
-  <button class="reset-btn" onclick="resetWeek()">🗑️ مسح بيانات الأسبوع كاملاً والبدء من جديد</button>
-</div>
+<button class="reset-btn" onclick="resetWeek()">🗑️ مسح بيانات الأسبوع كاملاً والبدء من جديد</button>
 <div class="bottom"></div>
 
-<div class="ib" id="installBanner">
-  <div>📋</div>
-  <div class="ib-txt"><div class="ib-tt">ثبّت جدول مهامي</div><div class="ib-sb">شغّله بدون نت</div></div>
-  <button class="ib-btn" id="installBtn">تثبيت</button>
-  <button class="ib-x" id="installClose">✕</button>
-</div>
-
 <script>
-const SECTIONS=[
-  {label:"🌅 فترة الصباح",cls:"sec-morning",tasks:[
-    {n:"الاستيقاظ",t:"normal"},
-    {n:"إسباغ الوضوء",t:"wudu"},
-    {n:"صلاة الفجر",t:"prayer"},
-    {n:"أذكار الصباح",t:"azkar"},
-    {n:"مراجعة القرآن",t:"quran"},
-    {n:"ترتيب الغرفة",t:"normal"},
-    {n:"ترتيب ملابسي ومراجعة متعلقاتي",t:"personal"},
-    {n:"تناول الإفطار",t:"meal"},
-    {n:"المذاكرة (ساعتين)",t:"study"},
+const SECTIONS = [
+  { label:"🌅 فترة الصباح", cls:"sec-morning", tasks:[
+    {n:"الاستيقاظ",                      t:"normal"},
+    {n:"إسباغ الوضوء",                   t:"wudu"},
+    {n:"صلاة الفجر",                     t:"prayer"},
+    {n:"سنن الفجر",                      t:"sunna"},
+    {n:"أذكار الصباح",                   t:"azkar"},
+    {n:"مراجعة القرآن",                  t:"quran"},
+    {n:"ترتيب الغرفة",                   t:"normal"},
+    {n:"ترتيب ملابسي ومراجعة متعلقاتي",  t:"personal"},
+    {n:"تناول الإفطار",                  t:"meal"},
+    {n:"المذاكرة (ساعتين)",               t:"study"},
   ]},
-  {label:"☀️ فترة منتصف اليوم",cls:"sec-midday",tasks:[
-    {n:"إسباغ الوضوء",t:"wudu"},
-    {n:"صلاة الظهر",t:"prayer"},
-    {n:"المذاكرة (3 ساعات)",t:"study"},
-    {n:"ترتيب ملابسي ومراجعة متعلقاتي",t:"personal"},
-    {n:"وقت المنزل",t:"normal"},
-    {n:"إسباغ الوضوء",t:"wudu"},
-    {n:"صلاة العصر",t:"prayer"},
-    {n:"أذكار المساء",t:"azkar"},
-    {n:"تناول الغداء",t:"meal"},
+  { label:"☀️ فترة منتصف اليوم", cls:"sec-midday", tasks:[
+    {n:"إسباغ الوضوء",                   t:"wudu"},
+    {n:"صلاة الظهر",                     t:"prayer"},
+    {n:"سنن الظهر",                       t:"sunna"},
+    {n:"المذاكرة (3 ساعات)",              t:"study"},
+    {n:"ترتيب ملابسي ومراجعة متعلقاتي",  t:"personal"},
+    {n:"وقت المنزل",                     t:"normal"},
+    {n:"إسباغ الوضوء",                   t:"wudu"},
+    {n:"صلاة العصر",                     t:"prayer"},
+    {n:"سنن العصر",                       t:"sunna"},
+    {n:"أذكار المساء",                   t:"azkar"},
+    {n:"تناول الغداء",                   t:"meal"},
   ]},
-  {label:"🌙 فترة المساء",cls:"sec-evening",tasks:[
-    {n:"إسباغ الوضوء",t:"wudu"},
-    {n:"صلاة المغرب",t:"prayer"},
-    {n:"حل الواجبات",t:"study"},
-    {n:"إسباغ الوضوء",t:"wudu"},
-    {n:"صلاة العشاء",t:"prayer"},
-    {n:"الاستحمام (وقت مناسب)",t:"normal"},
-    {n:"غسيل الأسنان",t:"normal"},
-    {n:"أذكار النوم",t:"azkar"},
-    {n:"النوم مبكراً",t:"normal"},
+  { label:"🌙 فترة المساء", cls:"sec-evening", tasks:[
+    {n:"إسباغ الوضوء",                   t:"wudu"},
+    {n:"صلاة المغرب",                    t:"prayer"},
+    {n:"سنن المغرب",                      t:"sunna"},
+    {n:"حل الواجبات",                    t:"study"},
+    {n:"إسباغ الوضوء",                   t:"wudu"},
+    {n:"صلاة العشاء",                    t:"prayer"},
+    {n:"سنن العشاء",                     t:"sunna"},
+    {n:"الاستحمام (وقت مناسب)",           t:"normal"},
+    {n:"غسيل الأسنان",                   t:"normal"},
+    {n:"أذكار النوم",                    t:"azkar"},
+    {n:"النوم مبكراً",                   t:"normal"},
   ]},
 ];
 
-const STATES=["","✅","⭐","❌"];
-const SCORE={"✅":5,"❌":-5,"⭐":10,"":0};
-const ALL_TASKS=[];
-SECTIONS.forEach(s=>s.tasks.forEach(t=>ALL_TASKS.push(t)));
-const N=ALL_TASKS.length;
-let currentUser="سادن";
+const STATES = ["","✅","⭐","❌"];
+const SCORE  = {"✅":5,"❌":-5,"⭐":10,"":0};
 
-function loadAll(){try{return JSON.parse(localStorage.getItem('mahami_data'))||{};}catch(e){return{}}}
-function saveAll(d){localStorage.setItem('mahami_data',JSON.stringify(d))}
-function getVal(ti,di){const d=loadAll();return((d[currentUser]||{})[`${ti}-${di}`])||""}
-function setVal(ti,di,v){const d=loadAll();if(!d[currentUser])d[currentUser]={};d[currentUser][`${ti}-${di}`]=v;saveAll(d)}
-function saveWeekLabel(){const d=loadAll();if(!d.__wk)d.__wk={};d.__wk[currentUser]=document.getElementById('weekLabel').value;saveAll(d)}
-function loadWeekLabel(){const d=loadAll();document.getElementById('weekLabel').value=(d.__wk||{})[currentUser]||''}
+const LEVELS = [
+  {name: "🌱 المبتدئ", min: 0, max: 100},
+  {name: "🌿 الناشئ", min: 100, max: 250},
+  {name: "🌳 المتقدم", min: 250, max: 500},
+  {name: "⭐ المحترف", min: 500, max: 800},
+  {name: "👑 البطل", min: 800, max: 1200},
+  {name: "🏆 الأسطورة", min: 1200, max: 999999},
+];
 
-function switchUser(u){
-  currentUser=u;
-  document.querySelectorAll('.utab').forEach(b=>b.classList.toggle('active',b.textContent.trim().includes(u)));
-  document.getElementById('pageTitle').textContent=`جدول مهام ${u}`;
-  buildTable();
+const MOTIVATIONS = [
+  "🌟 ابدأ يومك ببسمة! كل خطوة صغيرة بتقربك من الهدف",
+  "💪 أنت قادر! كل مهمة بتعملها بتخلك أقوى",
+  "🎯 التركيز على الهدف بيجيب النتيجة",
+  "🔥 استمرارك هو السر! ما تستسلمش",
+  "✨ النجاح مجموع جهود صغيرة كل يوم",
+  "🌈 بعد المطر بيجي قوس قزح! استمر",
+  "💎 أنت مميز! صدق في نفسك",
+  "🚀 كل يوم جديد فرصة جديدة",
+];
+
+const REWARDS_LIST = [
+  {icon: "🍦", name: "آيس كريم", desc: "100 فلس", cost: 100},
+  {icon: "🎮", name: "ساعة ألعاب", desc: "200 فلس", cost: 200},
+  {icon: "🎬", name: "فيلم كرتون", desc: "300 فلس", cost: 300},
+  {icon: "🎁", name: "هدية مفاجأة", desc: "500 فلس", cost: 500},
+  {icon: "🎡", name: "رحلة ترفيهية", desc: "800 فلس", cost: 800},
+  {icon: "📱", name: "وقت إضافي بالتلفون", desc: "150 فلس", cost: 150},
+];
+
+let ALL_TASKS = [];
+let FIXED_TASK_COUNT = 0;
+let currentUser = "سادن";
+let weeklyChart = null;
+
+function loadAll()  { 
+  try { 
+    return JSON.parse(localStorage.getItem('wkData_v3')) || {}; 
+  } catch(e){ return {}; } 
+}
+function saveAll(d) { localStorage.setItem('wkData_v3', JSON.stringify(d)); }
+
+function getExtraTasks() {
+  const d = loadAll();
+  return (d.__extra || {})[currentUser] || [];
+}
+function setExtraTasks(tasks) {
+  const d = loadAll();
+  if(!d.__extra) d.__extra = {};
+  d.__extra[currentUser] = tasks;
+  saveAll(d);
 }
 
-function stateClass(v){return v==="✅"?"check":v==="❌"?"cross":v==="⭐"?"star":""}
-
-function buildTable(){
-  const tbody=document.getElementById('tbody');
-  tbody.innerHTML='';
-  let ti=0;
-  SECTIONS.forEach(sec=>{
-    const sr=tbody.insertRow();sr.className=sec.cls;
-    const std=sr.insertCell();std.colSpan=8;std.textContent=sec.label;
-    sec.tasks.forEach(task=>{
-      const idx=ti++;
-      const tr=tbody.insertRow();tr.className='task-row';
-      const lbl=tr.insertCell();lbl.className=`lbl t-${task.t}`;lbl.textContent=task.n;
-      for(let di=0;di<7;di++){
-        const td=tr.insertCell();td.className=`t-${task.t}`;
-        const v=getVal(idx,di);
-        const div=document.createElement('div');
-        div.className='cell '+stateClass(v);
-        if(!v)div.classList.add('empty');
-        div.textContent=v;
-        let timer=null;
-        div.addEventListener('click',()=>{
-          if(timer){clearTimeout(timer);timer=null;applyVal(idx,di,div,"");}
-          else{timer=setTimeout(()=>{timer=null;const next=STATES[(STATES.indexOf(div.textContent)+1)%STATES.length];applyVal(idx,di,div,next);},230);}
-        });
-        td.appendChild(div);
-      }
-    });
-  });
-  calcTotals();loadWeekLabel();
-}
-
-function applyVal(ti,di,div,v){
-  setVal(ti,di,v);
-  div.textContent=v;div.className='cell '+stateClass(v);
-  if(!v)div.classList.add('empty');
-  calcTotals();
-}
-
-function calcTotals(){
-  let weekly=0,checks=0,stars=0,crosses=0,total=0,done=0;
-  for(let di=0;di<7;di++){
-    let day=0;
-    for(let ti=0;ti<N;ti++){
-      const v=getVal(ti,di);
-      day+=SCORE[v]||0;total++;
-      if(v==="✅"){checks++;done++;}
-      if(v==="⭐"){stars++;done++;}
-      if(v==="❌")crosses++;
-    }
-    const el=document.getElementById(`d${di}`);
-    el.textContent=(day>0?"+":"")+day+" ف";
-    el.className=day>0?"pos":day<0?"neg":"";
-    weekly+=day;
-  }
-  document.getElementById('totalChecks').textContent=checks;
-  document.getElementById('totalStars').textContent=stars;
-  document.getElementById('totalCross').textContent=crosses;
-  document.getElementById('totalPct').textContent=total>0?Math.round((done/total)*100)+'%':'0%';
-  const tc=document.getElementById('totalCoins');
-  tc.textContent=(weekly>0?"+":"")+weekly;
-  tc.parentElement.style.color=weekly>0?"var(--green)":weekly<0?"var(--red)":"var(--gold)";
-}
-
-function resetWeek(){
-  if(confirm(`مسح بيانات ${currentUser} للأسبوع كاملاً؟`)){
-    const d=loadAll();d[currentUser]={};
-    if(d.__wk)d.__wk[currentUser]='';
-    saveAll(d);buildTable();
-  }
-}
-
-buildTable();
-
-// PWA Install
-let deferredPrompt=null;
-const ib=document.getElementById('installBanner');
-const ibBtn=document.getElementById('installBtn');
-const ibX=document.getElementById('installClose');
-window.addEventListener('beforeinstallprompt',e=>{
-  e.preventDefault();deferredPrompt=e;
-  if(!localStorage.getItem('mahami_installed'))setTimeout(()=>ib.classList.add('show'),2000);
-});
-ibBtn.addEventListener('click',async()=>{
-  if(deferredPrompt){await deferredPrompt.prompt();deferredPrompt=null;}
-  ib.classList.remove('show');localStorage.setItem('mahami_installed','1');
-});
-ibX.addEventListener('click',()=>{ib.classList.remove('show');localStorage.setItem('mahami_installed','1')});
-window.addEventListener('appinstalled',()=>{ib.classList.remove('show')});
-</script>
-</body>
-</html>
- 
+function getUserStats() {
+  const d = loadAll();
+  retur
